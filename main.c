@@ -1,6 +1,6 @@
 //###########################################################################
 //
-// FILE:	My main - Основной файл с main-ом
+// FILE:	My main - Main file of the program, includes main() function
 //
 //###########################################################################
 
@@ -15,11 +15,11 @@
 #include "DSP28x_Project.h"     // DSP28x Headerfile
 
 #include "V_Include/main.h"     // main header frame file
-#include <string.h>             // для memcopy
+#include <string.h>             // Р“В¤Р“В«Р“С— memcopy
 
 
-// Функция иницилазации микроконтроллера - PLL, Clock, Timers, GPIO
-void CPU_Init()// Функция иницилазации микроконтроллера - PLL, Clock, Timers, GPIO
+// CPU initialization - PLL, Clock, Timers, GPIO
+void CPU_Init()// Initialization of CPU: PLL, Clock, Timers, GPIO
 {
     EALLOW;
     // Init System Control - CPU: PLL, Clocks to Peripherals. 90 MHz from internal oscillator
@@ -35,56 +35,52 @@ void CPU_Init()// Функция иницилазации микроконтроллера - PLL, Clock, Timers, GP
 
     //Watchdog
     DisableDog();
-
-    //Timer0Period = fPWM * 1000;
 }
 
 //====================================================
-// Служебные переменные
-int z_test = 0; // служебная переменная для отладки
-int pwm_on_test = 0; //ручной включатель pwm
+// Variables for testing purposes
+int z_test = 0; //
+int pwm_on_test = 0; //Switches on PWM on all 3 phases
 int Adc_test_cnt = 0;
 long Adc_test_avg, Adc_test_sum = 0;
 
-// Служебные переменные для Booster Board
+// Variables related to Booster Board HW
 int EN_GATE, DRV_FAULT = 0;
 
 //====================================================
 //Global variables
-Uint16 fCPU = 90;    //частота CPU в МГц
-Uint16 fPWM = 10;     //Частота ШИМ в кГц
-int Timer0Period = 1 * 1000; //период таймера 0 - таймера ШИМ - частота ШИМ, в мкс
-int Timer1Period = 1000; //период таймера 1 - таймера фиксированного расчета 1 кHz, в мкс
+Uint16 fCPU = 90;    //CPU Frequency, MHz
+Uint16 fPWM = 10;     //PWM Frequency, kHz
+int Timer0Period = 1 * 1000;
+int Timer1Period = 1000;
 
 //====================================================
-// Программные модули
-TSM_Sys sm_sys = SM_SYS_DEFAULTS;   // Основной расчет всей системы, вызов всех программных модулей in Fast Calc, Slow Calc
-TAdc adc = ADC_DEFAULTS;            // АЦП
-TDrv_Param drv_param = DRV_PARAM_DEFAULTS; //Номинальные значения привода и двигателя
-TPwm pwm = PWM_DEFAULTS;            //Pwm
-//TClarke clarke = CLARKE_DEFAULTS;   // Фазные преобразования
-//TPark park = PARK_DEFAULTS;         // Координатные преобразования
+//Main variables-instances of program modules
+TSM_Sys sm_sys = SM_SYS_DEFAULTS;   // Control System variable, includes system init, Fast Calc on PWM freq, Slow Calc
+TAdc adc = ADC_DEFAULTS;            // ADC init and processing
+TDrv_Param drv_param = DRV_PARAM_DEFAULTS; // Parameters of  the drive - PU are used across the whole project
+TPwm pwm = PWM_DEFAULTS;            // Pwm
+//TClarke clarke = CLARKE_DEFAULTS;   // Clarke transform
+//TPark park = PARK_DEFAULTS;         // Park transform
 
 //====================================================
-//Глобальные переменные
-Uint16 LoopCounter = 0;             // Счетчик фонового цикла main-а
+// Aux variables
+Uint16 LoopCounter = 0;             // Counter of loops of main
 
 //====================================================
-// Служебные переменные
-// Маркеры прерываний
+// Aux variables - PWM Trip Zone counters
 int Epwm1_tzint_cnt, Epwm2_tzint_cnt = 0;
+
 //====================================================
 // Main
 //
 void main(void)
 {
-    // Парочка служебных переменных
+
     unsigned long i;
 
     //====================================================
     // If running from flash copy RAM only functions to RAM
-
-    // запрет прерываний
     DINT;
 #ifdef _FLASH
     memcpy(&RamfuncsRunStart, &RamfuncsLoadStart, (size_t)&RamfuncsLoadSize);
@@ -94,13 +90,13 @@ void main(void)
     //Initialize CPU - PLL, Clock, Timers
     CPU_Init();
 
-    //Выключаем ШИМ (на всякий случай)
+    //PWM force off - just to be safe
     pwm.off(&pwm);
 
-    //Initialize System Control - инициализация прерываний, ADC, PWM, программных модулей - по сути всего что есть кроме hardware самого МК
+    //Initialize System Control
     sm_sys.init(&sm_sys);
 
-    //Разрешение прерываний
+    //Enable interrupts
     EINT;
 
     //====================================================
@@ -108,9 +104,9 @@ void main(void)
     for(;;)
     {
         LoopCounter++;
-        sm_sys.slow_calc(&sm_sys); //фоновый расчет
+        sm_sys.slow_calc(&sm_sys); //bacground calculation, that are not related to strict real-time domain
 
-        //ТЕСТ Включаем ШИМ
+        //Test function for manual PWM switch on and off
         if (pwm_on_test == 1) {
             pwm.on(&pwm);
             pwm_on_test = 0;
@@ -122,55 +118,54 @@ void main(void)
 }
 
 //====================================================================
-//Служебные переменные Interrupt IRQ Hanlder-ов
+//Main interrupt handlers - for timer0 at PWM frequency, for Timer 1 at fixed 1 kHz, and a TZ Interrupt
 
-Uint32 CpuTimeCnt10, CpuTimeCnt1 = 0;   //текущее значение счетчика таймеров 0 и 1
-Uint32 TIsr10, TIsr1 = 0;               //время расчета прерывания 10 и 1 кГц, в тактах процессора
-Uint32 CounterTime10, CounterTime1 = 0; //счетчик циклов прерываний 10 и 1 кГц
+Uint32 CpuTimeCnt10, CpuTimeCnt1 = 0;   //Variable for current "time" in CPU clocks
+Uint32 TIsr10, TIsr1 = 0;               //"Time" of a function, in CPU clocks, derived as a diff between start and stop CPU cnts
+Uint32 CounterTime10, CounterTime1 = 0; //CPU cnts
 
-//Прерывание 10 кГц - на частоте ШИМ, инициируется EPWM4
+//Main Interrupt at PWM freq - not used right now: PWM-based interrupt is used instead
 __interrupt void TI10_IRQ_Handler(void)
 {
-    CpuTimeCnt10 = CpuTimer0Regs.TIM.all;   //засекаем текущее время
+    CpuTimeCnt10 = CpuTimer0Regs.TIM.all;   //saving current "time"
 
     //-------------------------
-    sm_sys.fast_calc(&sm_sys); //fast calc на частоте х10 частоты ШИМ
+    sm_sys.fast_calc(&sm_sys); // Control System fast calc
     //-------------------------
 
     CounterTime10++;
 
-    TIsr10 = (CpuTimeCnt10 - CpuTimer0Regs.TIM.all) & 0xFFFFFF; //считаем время в тактах
-    if (TIsr10 > (Timer0Period - 5) * fCPU){          //100 - 5 = 95 мкс * 90 МГц = 94 мкс
-        //sm_prot.fault_word1 |= FAULT_PROGRAM10;
+    TIsr10 = (CpuTimeCnt10 - CpuTimer0Regs.TIM.all) & 0xFFFFFF; //cutting off everything over 1 cycle
+    if (TIsr10 > (Timer0Period - 5) * fCPU){            //100 - 5 = 95 - check for too long program execution
+        //sm_prot.fault_word1 |= FAULT_PROGRAM10;       // Fault - too long program execution
     }
 
     EPwm4Regs.ETCLR.all = 0x1;
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP3;
 }
 
-//Прерывание 1 кГц
+//Main Interrupt at fixed 1 kHz - needed for non-pwm related tasks, but those that require fixed freq of call
 __interrupt void TI1_IRQ_Handler(void)
 {
-    CpuTimeCnt1 = CpuTimer1Regs.TIM.all;   //засекаем текущее время
+    CpuTimeCnt1 = CpuTimer1Regs.TIM.all;   //saving current "time"
 
     //-------------------------
-    sm_sys.khz_calc(&sm_sys); //fix calc на частоте 1 kHz
+    sm_sys.khz_calc(&sm_sys); //fix calc at 1 kHz
     //-------------------------
 
     CounterTime1++;
 
-    TIsr1 = (CpuTimeCnt1 - CpuTimer1Regs.TIM.all) & 0xFFFFFF; //считаем время в тактах
-    if (TIsr1 > (Timer1Period - 50) * fCPU){    //1000 - 50 = 950 мкс * 90 МГц = 940 мкс
-        //sm_prot.fault_word1 |= FAULT_PROGRAM1;
+    TIsr1 = (CpuTimeCnt1 - CpuTimer1Regs.TIM.all) & 0xFFFFFF; //calculating time of execution
+    if (TIsr1 > (Timer1Period - 50) * fCPU){        //1000 - 50 = 950 - check for too long program execution
+        //sm_prot.fault_word1 |= FAULT_PROGRAM1;    //Fault - too long program execution
     }
 
-    CpuTimer1Regs.TCR.bit.TIF = 0;          //сброс флага прерывания TIM1
+    CpuTimer1Regs.TCR.bit.TIF = 0;          //TIM1 INT flag clear
 }
 
-//Аппаратное прерывание инвертора - авария ШИМ
+//Trip Zone interrupt - based on Ia value
 __interrupt void EPWM1_TZINT_Handler(void)
 {
-    //Выключаем ШИМ
     pwm.off(&pwm);
 
     Epwm1_tzint_cnt++;
@@ -178,9 +173,9 @@ __interrupt void EPWM1_TZINT_Handler(void)
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP2;
 }
 
+//Trip Zone interrupt - based on Ib value
 __interrupt void EPWM2_TZINT_Handler(void)
 {
-    //Выключаем ШИМ
     pwm.off(&pwm);
 
     Epwm2_tzint_cnt++;
@@ -188,4 +183,4 @@ __interrupt void EPWM2_TZINT_Handler(void)
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP2;
 }
 
-// Конец и вновь начало...
+// End and beginning again...
