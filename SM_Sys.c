@@ -1,15 +1,15 @@
 //
-//Основной рамочный файл расчета программных модулей - Init, Fast Calc, Slow Calc
+//Main count of Control System - Init, Fast Calc, Slow Calc
 //
 
 #include "V_Include/SM_Sys.h"
 #include "V_Include/main.h"
 
-// Инициализация системы управления - программных модулей, прерываний
+// Control System init - program modules, INTerrupts
 void SM_Sys_Init(TSM_Sys *p)
 {
     //====================================================
-     // Инициализация прерываний
+     // INT init
 
      InitPieCtrl();
      InitPieVectTable();
@@ -18,17 +18,17 @@ void SM_Sys_Init(TSM_Sys *p)
      IFR = 0x0000;
 
      EALLOW;
-     PieVectTable.ADCINT1       = &ADCINT1_Handler;    //ADC INT для Тестов
+     PieVectTable.ADCINT1       = &ADCINT1_Handler;    //ADC INT for tests
      PieVectTable.EPWM4_INT     = &TI10_IRQ_Handler;   //10 kHz Fast Calc IRQ
      PieVectTable.TINT1         = &TI1_IRQ_Handler;   //1 kHz Slow Calc IRQ
      PieVectTable.EPWM1_TZINT   = &EPWM1_TZINT_Handler;   //TZ interrupt EPWM1, group 2
      PieVectTable.EPWM2_TZINT   = &EPWM2_TZINT_Handler;   //TZ interrupt EPWM2, group 2
      EDIS;
 
-     //PieCtrlRegs.PIEIER1.bit.INTx1 = 1; //Enable ADCINT1 - прерывание тестового АЦП
+     //PieCtrlRegs.PIEIER1.bit.INTx1 = 1; //Enable ADCINT1 - INT of test ADC
      PieCtrlRegs.PIEIER2.bit.INTx1 = 1; //Enable EPWM1_TZINT
      PieCtrlRegs.PIEIER2.bit.INTx2 = 1; //Enable EPWM2_TZINT
-     PieCtrlRegs.PIEIER3.bit.INTx4 = 1; //Enable EPWM4 INT - Главное прерывание СУ + общие ADC (Udc и т.п.)
+     PieCtrlRegs.PIEIER3.bit.INTx4 = 1; //Enable EPWM4 INT - Main interrupt of Control System calc + common ADC (Udc etc.)
 
      //IER |= M_INT1; //Enable Group 1 Interrupts - ADCINT1
      IER |= M_INT2; //Enable Group 2 Interrupts - EPWM TZ
@@ -62,7 +62,7 @@ void SM_Sys_Init(TSM_Sys *p)
 
 
      //----------------
-     //GPIO для Booster board
+     //GPIO РґР»СЏ Booster board
 
      // Fault and Overcurrent IOs - pullup needed for booster's open drain transistor
      GpioCtrlRegs.GPAPUD.bit.GPIO28 = 0;    //Pull Up ON
@@ -92,26 +92,24 @@ void SM_Sys_Init(TSM_Sys *p)
     pwm.init(&pwm);
 
     //=====================================================
-    //Инициализация всего остального
+    //Init of everything else
     drv_param.init(&drv_param);
 }
 
-void SM_Sys_Fast_Calc(TSM_Sys *p) // Быстрый расчет СУ на частоте ШИМ
+void SM_Sys_Fast_Calc(TSM_Sys *p) // Fast calc on PWM frequency
 {
     adc.fast_calc(&adc);
     pwm.fast_calc(&pwm);
 }
 
-void SM_Sys_Khz_Calc(TSM_Sys *p) // Расчет на фиксированной частоте 1 кГц
+void SM_Sys_Khz_Calc(TSM_Sys *p) // Calc at fixed frequency of 1 kHz
 {
-    //ТЕСТ проверка среднего АЦП по 100 значениям для EPMW
+    //All test functions
     TestFuncs();
 }
 
-void SM_Sys_Slow_Calc(TSM_Sys *p) // Медленный фоновый расчет в мейне
+void SM_Sys_Slow_Calc(TSM_Sys *p) // Off-real-time background calc
 {
     adc.slow_calc(&adc);
     drv_param.slow_calc(&drv_param);
 }
-
-
