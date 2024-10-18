@@ -1,5 +1,5 @@
 //
-//Номинальные значения привода и мотора
+//Nominal values of a drive
 //
 
 #include "V_Include/V_Drv_Param.h"
@@ -22,7 +22,7 @@ void Drv_Param_Khz_calc(TDrv_Param *p)
 
 void Drv_Param_Slow_calc(TDrv_Param *p)
 {
-    //Апдейт номинальных параметров привода
+    //Update of Nominal values of a drive
     drv_param.I_nom;       // = Nom_data_Buf[0]
     drv_param.Udc_nom;     // = Nom_data_Buf[1]
 }
