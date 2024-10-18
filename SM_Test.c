@@ -1,5 +1,5 @@
 //
-//Тестовый файл, совсякими служебными функциями для тестирования
+//File with functions for testing
 //
 
 #include "V_Include/main.h"
