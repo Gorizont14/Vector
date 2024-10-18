@@ -1,5 +1,5 @@
 //
-//Расчет АЦП
+//ADC Calc
 //
 
 #include "V_Include/V_Adc.h"
@@ -82,7 +82,7 @@ void Adc_Init(TAdc *p)
 
 void Adc_Fast_calc(TAdc *p)
 {
-    // Расчет АЦП здесь :)
+    // Main ADC Calc on PWM freq
     p->Itemp_a = 0;
     p->Itemp_b = 0;
     p->Udctemp = 0;
@@ -92,7 +92,7 @@ void Adc_Fast_calc(TAdc *p)
     p->Imeas_a = p->IaGainNom * (p->Itemp_a * ADC_SCALE + p->Imeas_a_offset); //32768 x 10, int32
 
     //--------------------------------------------
-    //TEST временная TZ фазы А
+    //TEST - temporary TZ of phase A
     if(abs(p->Imeas_a) > 0.5 && EN_GATE == 1)
     {
         //pwm.off(&pwm);
@@ -103,7 +103,7 @@ void Adc_Fast_calc(TAdc *p)
     p->Itemp_b -= 2048; //+-2048
     p->Imeas_b = p->IbGainNom * (p->Itemp_b * ADC_SCALE + p->Imeas_b_offset);
 
-    p->Imeas_c = -p->Imeas_a - p->Imeas_b; //ток фазы с - минус сумма токов фаз a и b
+    p->Imeas_c = -p->Imeas_a - p->Imeas_b; //Ic = -Ia - Ib
 
     p->Udctemp = AdcResult.ADCRESULT0; //0-4095
     p->Udctemp -= 2048; //+-2048
@@ -117,7 +117,7 @@ void Adc_Khz_calc(TAdc *p)
 
 void Adc_Slow_calc(TAdc *p)
 {
-    //Пересчет нормировочных коэффициентов от номинального тока, напряжения и т.п.
+    //Recalc of nominal coefficients of current, voltage etc.
     p->IaGainNom = p->Imeas_a_gain / drv_param.I_nom;
     p->IbGainNom = p->Imeas_b_gain / drv_param.I_nom;
     p->UdcGainNom = p->Umeas_dc_gain / drv_param.Udc_nom;
