@@ -1,15 +1,15 @@
 //
-//Расчет Pwm
+//PWM Calc
 //
 
 #include "V_Include/V_Pwm.h"
 #include "V_Include/main.h"
 
-void Pwm_Init(TPwm *p) //Основной трехфазный ШИМ + ШИМ СУ + Тестовый измерительный ШИМ
+void Pwm_Init(TPwm *p) //Main calc of 3-phase PWM, Control System call and ADC call
 {
     EALLOW;
-        SysCtrlRegs.PCLKCR0.bit.TBCLKSYNC = 0; //отключаем pwm Clock
-        SysCtrlRegs.PCLKCR1.bit.EPWM1ENCLK = 1;
+        SysCtrlRegs.PCLKCR0.bit.TBCLKSYNC = 0; //Switch off PWM clock
+        SysCtrlRegs.PCLKCR1.bit.EPWM1ENCLK = 1;//Enable all PWMs: 1,2,3 for phases A,B,C, 4 for Control System + common things like ADC Udc, 5 for testing
         SysCtrlRegs.PCLKCR1.bit.EPWM2ENCLK = 1;
         SysCtrlRegs.PCLKCR1.bit.EPWM3ENCLK = 1;
         SysCtrlRegs.PCLKCR1.bit.EPWM4ENCLK = 1;
@@ -19,11 +19,11 @@ void Pwm_Init(TPwm *p) //Основной трехфазный ШИМ + ШИМ СУ + Тестовый измерительн
     //====================================================
     //EPWM1
     //--------------------------------------------------------------------------------
-    EPwm1Regs.TBPRD                     = 45000000 / p->Pwm_freq; // Period - 11250 for 4KHz, 4500 for 10 kHz
-    EPwm1Regs.TBPHS.half.TBPHS          = 0;                // Phase
-    EPwm1Regs.TBCTR                     = 0;                // обнуляем каунтер
+    EPwm1Regs.TBPRD                     = 45000000 / p->Pwm_freq;   // Period - 11250 for 4KHz, 4500 for 10 kHz
+    EPwm1Regs.TBPHS.half.TBPHS          = 0;                        // Phase
+    EPwm1Regs.TBCTR                     = 0;                        // zero to cnt
 
-    EPwm1Regs.CMPA.half.CMPA            = EPwm1Regs.TBPRD + 1;    // Set CTR level
+    EPwm1Regs.CMPA.half.CMPA            = EPwm1Regs.TBPRD + 1;      // Set CTR level
     //--------------------------------------------------------------------------------
 
     EPwm1Regs.TBCTL.bit.CTRMODE         = TB_COUNT_UPDOWN;  // Symmetrical mode
@@ -35,7 +35,7 @@ void Pwm_Init(TPwm *p) //Основной трехфазный ШИМ + ШИМ СУ + Тестовый измерительн
     EPwm1Regs.TBCTL.bit.HSPCLKDIV       = TB_DIV1;          // Clock ratio = SYSCLKOUT = 90 MHz, both HSPCLKDIV and CLKDIV = 1
     EPwm1Regs.TBCTL.bit.CLKDIV          = TB_DIV1;          // CLKDIV = 1
     EPwm1Regs.TBCTL.bit.SYNCOSEL        = TB_SYNC_IN;       // Sync out on SYNC_IN
-    EPwm1Regs.TBCTL.bit.FREE_SOFT       = 1;                // Остановка шим после CTR = 0
+    EPwm1Regs.TBCTL.bit.FREE_SOFT       = 1;                // Stop counting after CTR = 0
 
     EPwm1Regs.CMPCTL.bit.SHDWAMODE      = CC_SHADOW;
     EPwm1Regs.CMPCTL.bit.SHDWBMODE      = CC_SHADOW;
@@ -43,18 +43,18 @@ void Pwm_Init(TPwm *p) //Основной трехфазный ШИМ + ШИМ СУ + Тестовый измерительн
     EPwm1Regs.CMPCTL.bit.LOADBMODE      = CC_CTR_ZERO;      // load on CTR = 0
 
     EPwm1Regs.AQCTLA.bit.CAU            = AQ_SET;           // Action on __
-    EPwm1Regs.AQCTLA.bit.CAD            = AQ_CLEAR;           // Action on __
+    EPwm1Regs.AQCTLA.bit.CAD            = AQ_CLEAR;         // Action on __
     EPwm1Regs.AQCTLA.bit.ZRO            = AQ_CLEAR;         // Action on __
     EPwm1Regs.AQSFRC.bit.RLDCSF         = 0;                //Load on CTR = 0
 
-    // Контроль канала ePWM B идет от канала А:
-    // канал А тактирует, далее на уровне DB идет инвертирование с dead зоной
+    // Contol of ePWM channel B comes from channel Рђ:
+    // Channel A sets the clocks, next on DB level there is an inversion with dead zone
     EPwm1Regs.DBCTL.bit.HALFCYCLE       = 0;                // TBCLCK rate
     EPwm1Regs.DBCTL.bit.IN_MODE         = 0;                // PWMxA is source for RED and FED
     EPwm1Regs.DBCTL.bit.OUT_MODE        = DB_FULL_ENABLE;   // enable Dead-band RED & FED (DBM fully enabled)
 
     //=========================================================================
-    // Инверсия каналов ШИМ !
+    // PWM channel B inversion !!
     EPwm1Regs.DBCTL.bit.POLSEL          = DB_ACTV_HIC;      // Active Hi complementary - B = /A
 
     // DEAD TIME !!
@@ -67,13 +67,13 @@ void Pwm_Init(TPwm *p) //Основной трехфазный ШИМ + ШИМ СУ + Тестовый измерительн
     EALLOW;
     Comp2Regs.COMPCTL.bit.COMPDACEN     = 1;            //Comparator + DAC enable
     Comp2Regs.COMPCTL.bit.COMPSOURCE    = 0;            //DAC as a ref source
-    Comp2Regs.COMPCTL.bit.QUALSEL       = 0;            //2 clocks окно съема сигнала до аварии 22 нс
+    Comp2Regs.COMPCTL.bit.QUALSEL       = 0;            //2 clocks sample window, 22 ns
     Comp2Regs.COMPCTL.bit.SYNCSEL       = 0;            //Async
     Comp2Regs.DACCTL.bit.DACSOURCE      = 0;            //DACVAL
     GpioCtrlRegs.AIOMUX1.bit.AIO4       = 3;            //COMP2A
     GpioCtrlRegs.AIODIR.bit.AIO4        = 0;            //Input for COMP2
     //---------------------------------------------
-    //Референс значение напряжения, выше которого - авария
+    //Trip value Uref, over which TZ trips
     //V = DACVAL * (VDDA - VSSA) / 1023 = DACVAL * (3.3V - 0V) / 1023
     //DACVAL = 1023 -> 3.3 V -> MAX
     //---------------------------------------------
@@ -81,9 +81,9 @@ void Pwm_Init(TPwm *p) //Основной трехфазный ШИМ + ШИМ СУ + Тестовый измерительн
     //---------------------------------------------
     //Trip zone control based on COMP2OUT
     EPwm1Regs.DCTRIPSEL.bit.DCAHCOMPSEL = 0x9;          //COMP2OUT
-    EPwm1Regs.TZDCSEL.bit.DCAEVT1       = 0x2;          //DCBH = high, DCBL  = don’t care
+    EPwm1Regs.TZDCSEL.bit.DCAEVT1       = 0x2;          //DCBH = high, DCBL  = donвЂ™t care
     EPwm1Regs.DCACTL.bit.EVT1SRCSEL     = 0;            //DCAEVT1
-    EPwm1Regs.DCACTL.bit.EVT1FRCSYNCSEL = 1;            //Async - сразу трип
+    EPwm1Regs.DCACTL.bit.EVT1FRCSYNCSEL = 1;            //Async - immediate trip
     //---------------------------------------------
     EPwm1Regs.TZCTL.bit.DCAEVT1         = TZ_FORCE_LO;  //Force Low at trip
     //---------------------------------------------
@@ -105,7 +105,7 @@ void Pwm_Init(TPwm *p) //Основной трехфазный ШИМ + ШИМ СУ + Тестовый измерительн
     //--------------------------------------------------------------------------------
     EPwm2Regs.TBPRD                     = 45000000 / p->Pwm_freq;   // Period - 11250 for 4KHz, 4500 for 10 kHz
     EPwm2Regs.TBPHS.half.TBPHS          = 0;                        // Phase
-    EPwm2Regs.TBCTR                     = 0;                        // обнуляем каунтер
+    EPwm2Regs.TBCTR                     = 0;                        // zero to cnt
 
     EPwm2Regs.CMPA.half.CMPA            = EPwm2Regs.TBPRD + 1;      // Set CTR level
     //--------------------------------------------------------------------------------
@@ -119,7 +119,7 @@ void Pwm_Init(TPwm *p) //Основной трехфазный ШИМ + ШИМ СУ + Тестовый измерительн
     EPwm2Regs.TBCTL.bit.HSPCLKDIV       = TB_DIV1;          // Clock ratio = SYSCLKOUT = 90 MHz, both HSPCLKDIV and CLKDIV = 1
     EPwm2Regs.TBCTL.bit.CLKDIV          = TB_DIV1;          // CLKDIV = 1
     EPwm2Regs.TBCTL.bit.SYNCOSEL        = TB_SYNC_IN;       // Sync out on SYNC_IN
-    EPwm2Regs.TBCTL.bit.FREE_SOFT       = 1;                // Остановка шим после CTR = 0
+    EPwm2Regs.TBCTL.bit.FREE_SOFT       = 1;                // Stop counting after CTR = 0
 
     EPwm2Regs.CMPCTL.bit.SHDWAMODE      = CC_SHADOW;
     EPwm2Regs.CMPCTL.bit.SHDWBMODE      = CC_SHADOW;
@@ -131,14 +131,14 @@ void Pwm_Init(TPwm *p) //Основной трехфазный ШИМ + ШИМ СУ + Тестовый измерительн
     EPwm2Regs.AQCTLA.bit.ZRO            = AQ_CLEAR;         // Action on __
     EPwm2Regs.AQSFRC.bit.RLDCSF         = 0;                // Load on CTR = 0
 
-    // Контроль канала ePWM B идет от канала А:
-    // канал А тактирует, далее на уровне DB идет инвертирование с dead зоной
+    // Contol of ePWM channel B comes from channel Рђ:
+    // Channel A sets the clocks, next on DB level there is an inversion with dead zone
     EPwm2Regs.DBCTL.bit.HALFCYCLE       = 0;                // TBCLCK rate
     EPwm2Regs.DBCTL.bit.IN_MODE         = 0;                // PWMxA is source for RED and FED
     EPwm2Regs.DBCTL.bit.OUT_MODE        = DB_FULL_ENABLE;   // Enable Dead-band RED & FED (DBM fully enabled)
 
     //=========================================================================
-    // Инверсия каналов ШИМ !
+    // PWM channel B inversion !!
     EPwm2Regs.DBCTL.bit.POLSEL          = DB_ACTV_HIC;      // Active Hi complementary - B = /A
     // DEAD TIME !!
     EPwm2Regs.DBFED                     = 99;               // FED; 1 = 1/90MHz = 11 ns
@@ -149,13 +149,13 @@ void Pwm_Init(TPwm *p) //Основной трехфазный ШИМ + ШИМ СУ + Тестовый измерительн
     EALLOW;
     Comp3Regs.COMPCTL.bit.COMPDACEN     = 1;            //Comparator + DAC enable
     Comp3Regs.COMPCTL.bit.COMPSOURCE    = 0;            //DAC as a ref source
-    Comp3Regs.COMPCTL.bit.QUALSEL       = 0;            //2 clocks окно съема сигнала до аварии 22 нс
+    Comp3Regs.COMPCTL.bit.QUALSEL       = 0;            //2 clocks sample window, 22 ns
     Comp3Regs.COMPCTL.bit.SYNCSEL       = 0;            //Async
     Comp3Regs.DACCTL.bit.DACSOURCE      = 0;            //DACVAL
     GpioCtrlRegs.AIOMUX1.bit.AIO6       = 3;            //COMP3A
     GpioCtrlRegs.AIODIR.bit.AIO6        = 0;            //Input for COMP3
     //---------------------------------------------
-    //Референс значение напряжения, выше которого - авария
+    //Trip value Uref, over which TZ trips
     //V = DACVAL * (VDDA - VSSA) / 1023 = DACVAL * (3.3V - 0V) / 1023
     //DACVAL = 1023 -> 3.3 V -> MAX
     //---------------------------------------------
@@ -163,9 +163,9 @@ void Pwm_Init(TPwm *p) //Основной трехфазный ШИМ + ШИМ СУ + Тестовый измерительн
     //---------------------------------------------
     //Trip zone control based on COMP3OUT
     EPwm2Regs.DCTRIPSEL.bit.DCAHCOMPSEL = 0xA;          //COMP3OUT
-    EPwm2Regs.TZDCSEL.bit.DCAEVT1       = 0x2;          //DCBH = high, DCBL  = don’t care
+    EPwm2Regs.TZDCSEL.bit.DCAEVT1       = 0x2;          //DCBH = high, DCBL  = donвЂ™t care
     EPwm2Regs.DCACTL.bit.EVT1SRCSEL     = 0;            //DCAEVT1
-    EPwm2Regs.DCACTL.bit.EVT1FRCSYNCSEL = 1;            //Async - сразу трип
+    EPwm2Regs.DCACTL.bit.EVT1FRCSYNCSEL = 1;            //Async - immediate trip
     //---------------------------------------------
     EPwm2Regs.TZCTL.bit.DCAEVT1         = TZ_FORCE_LO;  //Force Low at trip
     //---------------------------------------------
@@ -184,11 +184,11 @@ void Pwm_Init(TPwm *p) //Основной трехфазный ШИМ + ШИМ СУ + Тестовый измерительн
     //====================================================
     //EPWM3
     //--------------------------------------------------------------------------------
-    EPwm3Regs.TBPRD                     = 45000000 / p->Pwm_freq; // Period - 11250 for 4KHz, 4500 for 10 kHz
-    EPwm3Regs.TBPHS.half.TBPHS          = 0;                // Phase
-    EPwm3Regs.TBCTR                     = 0;                // обнуляем каунтер
+    EPwm3Regs.TBPRD                     = 45000000 / p->Pwm_freq;   // Period - 11250 for 4KHz, 4500 for 10 kHz
+    EPwm3Regs.TBPHS.half.TBPHS          = 0;                        // Phase
+    EPwm3Regs.TBCTR                     = 0;                        // cnt to zero
 
-    EPwm3Regs.CMPA.half.CMPA            = EPwm3Regs.TBPRD + 1;    // Set CTR level
+    EPwm3Regs.CMPA.half.CMPA            = EPwm3Regs.TBPRD + 1;      // Set CTR level
     //--------------------------------------------------------------------------------
 
     EPwm3Regs.TBCTL.bit.CTRMODE         = TB_COUNT_UPDOWN;  // Symmetrical mode
@@ -200,7 +200,7 @@ void Pwm_Init(TPwm *p) //Основной трехфазный ШИМ + ШИМ СУ + Тестовый измерительн
     EPwm3Regs.TBCTL.bit.HSPCLKDIV       = TB_DIV1;          // Clock ratio = SYSCLKOUT = 90 MHz, both HSPCLKDIV and CLKDIV = 1
     EPwm3Regs.TBCTL.bit.CLKDIV          = TB_DIV1;          // CLKDIV = 1
     EPwm3Regs.TBCTL.bit.SYNCOSEL        = TB_SYNC_IN;       // Sync out on SYNC_IN
-    EPwm3Regs.TBCTL.bit.FREE_SOFT       = 1;                // Остановка шим после CTR = 0
+    EPwm3Regs.TBCTL.bit.FREE_SOFT       = 1;                // РћСЃС‚Р°РЅРѕРІРєР° С€РёРј РїРѕСЃР»Рµ CTR = 0
 
     EPwm3Regs.CMPCTL.bit.SHDWAMODE      = CC_SHADOW;
     EPwm3Regs.CMPCTL.bit.SHDWBMODE      = CC_SHADOW;
@@ -208,18 +208,18 @@ void Pwm_Init(TPwm *p) //Основной трехфазный ШИМ + ШИМ СУ + Тестовый измерительн
     EPwm3Regs.CMPCTL.bit.LOADBMODE      = CC_CTR_ZERO;      // load on CTR = 0
 
     EPwm3Regs.AQCTLA.bit.CAU            = AQ_SET;           // Action on __
-    EPwm3Regs.AQCTLA.bit.CAD            = AQ_CLEAR;           // Action on __
+    EPwm3Regs.AQCTLA.bit.CAD            = AQ_CLEAR;         // Action on __
     EPwm3Regs.AQCTLA.bit.ZRO            = AQ_CLEAR;         // Action on __
     EPwm3Regs.AQSFRC.bit.RLDCSF         = 0;                //Load on CTR = 0
 
-    // Контроль канала ePWM B идет от канала А:
-    // канал А тактирует, далее на уровне DB идет инвертирование с dead зоной
+    // Contol of ePWM channel B comes from channel Рђ:
+    // Channel A sets the clocks, next on DB level there is an inversion with dead zone
     EPwm3Regs.DBCTL.bit.HALFCYCLE       = 0;                // TBCLCK rate
     EPwm3Regs.DBCTL.bit.IN_MODE         = 0;                // PWMxA is source for RED and FED
     EPwm3Regs.DBCTL.bit.OUT_MODE        = DB_FULL_ENABLE;   // enable Dead-band RED & FED (DBM fully enabled)
 
     //=========================================================================
-    // Инверсия каналов ШИМ !
+    // Channel - B inversion of channel A
     EPwm3Regs.DBCTL.bit.POLSEL          = DB_ACTV_HIC;      // Active Hi complementary - B = /A
 
     // DEAD TIME !!
@@ -228,40 +228,39 @@ void Pwm_Init(TPwm *p) //Основной трехфазный ШИМ + ШИМ СУ + Тестовый измерительн
     //=========================================================================
 
     //Trip Zone
-    // Т.к. на этой плате COMP1 занят ADC Ub, используем COMP2OUT OR COMP3OUT as a ePWM3 Trip Zone Sources
-    // Прерывание не используем, т.к. оно основано на COMP2 и 3, которые каждое вызывает свое прерывание
+    //Due to on this board COMP1 is occupied by ADC for Ub, we use COMP2OUT OR COMP3OUT logic as a ePWM3 Trip Zone sources
+    // Int is not used, cause both COMP2OUT and COMP3OUT have their own interrupts
     EPwm3Regs.DCTRIPSEL.bit.DCAHCOMPSEL = 0x9;          //COMP2OUT
     EPwm3Regs.DCTRIPSEL.bit.DCBHCOMPSEL = 0xA;          //COMP3OUT
-    EPwm3Regs.TZDCSEL.bit.DCAEVT1       = 0x2;          //DCBH = high, DCBL  = don’t care
-    EPwm3Regs.TZDCSEL.bit.DCBEVT1       = 0x2;          //DCBH = high, DCBL  = don’t care
+    EPwm3Regs.TZDCSEL.bit.DCAEVT1       = 0x2;          //DCBH = high, DCBL  = donвЂ™t care
+    EPwm3Regs.TZDCSEL.bit.DCBEVT1       = 0x2;          //DCBH = high, DCBL  = donвЂ™t care
     EPwm3Regs.DCACTL.bit.EVT1SRCSEL     = 0;            //DCAEVT1
     EPwm3Regs.DCBCTL.bit.EVT1SRCSEL     = 0;            //DCBEVT1
-    EPwm3Regs.DCACTL.bit.EVT1FRCSYNCSEL = 1;            //Async - сразу трип
-    EPwm3Regs.DCBCTL.bit.EVT1FRCSYNCSEL = 1;            //Async - сразу трип
+    EPwm3Regs.DCACTL.bit.EVT1FRCSYNCSEL = 1;            //Async - immediate trip
+    EPwm3Regs.DCBCTL.bit.EVT1FRCSYNCSEL = 1;            //Async - immediate trip
     //---------------------------------------------
     EPwm3Regs.TZCTL.bit.DCAEVT1         = TZ_FORCE_LO;  //Force Low at trip
     EPwm3Regs.TZCTL.bit.DCBEVT1         = TZ_FORCE_LO;  //Force Low at trip
     //---------------------------------------------
     EPwm3Regs.TZSEL.bit.DCAEVT1         = 1;            //enable as a trip source
     EPwm3Regs.TZSEL.bit.DCBEVT1         = 1;            //enable as a trip source
-    //EPwm3Regs.TZEINT.bit.DCAEVT1        = 1;            //INT enable
+    //EPwm3Regs.TZEINT.bit.DCAEVT1        = 1;          //INT enable
     EPwm3Regs.TZCLR.bit.OST             = 1;            //One-shot flag clear
     EPwm3Regs.TZCLR.all                 = 0xF;          //INT flag clear
     //--------------------------------------------------------------------------------
     //ADC SOCA
-    EPwm3Regs.ETSEL.bit.SOCAEN          = 1;    //enable SOCA
-    EPwm3Regs.ETSEL.bit.SOCASEL         = 2;    //SOCA on CTR = PRD
-    EPwm3Regs.ETPS.bit.SOCAPRD          = 1;    //SOC on first event
+    EPwm3Regs.ETSEL.bit.SOCAEN          = 1;            //enable SOCA
+    EPwm3Regs.ETSEL.bit.SOCASEL         = 2;            //SOCA on CTR = PRD
+    EPwm3Regs.ETPS.bit.SOCAPRD          = 1;            //SOC on first event
 
 
     //====================================================
     // EPWM4
-    // EPWM4 - основной PWM для запуска системы управления + запуска ADC, не связанных
-    // непосредственно с работой привода - например, измерение Udc
-    EPwm4Regs.TBPRD                     = EPwm1Regs.TBPRD;            // Period - 11250 for 4KHz, 45000 for 1 kHz
-    EPwm4Regs.TBPHS.half.TBPHS          = 0;                // Phase
-    EPwm4Regs.TBCTR                     = 0;                // обнуляем каунтер
-    EPwm4Regs.CMPA.half.CMPA            = EPwm4Regs.TBPRD / 2;       // Set CTR level
+    // EPWM4 - Main PWM for Control System clocking, is synchronous with all 3 main PWMs 1-3
+    EPwm4Regs.TBPRD                     = EPwm1Regs.TBPRD;          // Period - 11250 for 4KHz, 45000 for 1 kHz
+    EPwm4Regs.TBPHS.half.TBPHS          = 0;                        // Phase
+    EPwm4Regs.TBCTR                     = 0;                        // cnt to zero
+    EPwm4Regs.CMPA.half.CMPA            = EPwm4Regs.TBPRD / 2;      // Set CTR level
     //--------------------------------------------------------------------------------
 
     EPwm4Regs.TBCTL.bit.CTRMODE         = TB_COUNT_UPDOWN;  // Symmetrical mode
@@ -284,17 +283,17 @@ void Pwm_Init(TPwm *p) //Основной трехфазный ШИМ + ШИМ СУ + Тестовый измерительн
     EPwm4Regs.ETPS.bit.INTCNT           = 1;                // INT on 1st event
     EPwm4Regs.ETPS.bit.INTPRD           = 1;                // INT on 1st event
 
-    EPwm4Regs.ETSEL.bit.SOCAEN          = 1;    //enable SOCA for Udc measurement
-    EPwm4Regs.ETSEL.bit.SOCASEL         = 2;    //SOCA on CTR = PRD
-    EPwm4Regs.ETPS.bit.SOCAPRD          = 1;    //SOC on first event
+    EPwm4Regs.ETSEL.bit.SOCAEN          = 1;                //enable SOCA for Udc measurement
+    EPwm4Regs.ETSEL.bit.SOCASEL         = 2;                //SOCA on CTR = PRD
+    EPwm4Regs.ETPS.bit.SOCAPRD          = 1;                //SOC on first event
 
 
     //====================================================
     // EPWM5
-    // EPWM5 - Тестовый ШИМ для тестового ADC
+    // EPWM5 - PWM for clocking test ADC
    EPwm5Regs.TBPRD                     = EPwm1Regs.TBPRD * 20;            // Period - 11250 for 4KHz, 45000 for 1 kHz
    EPwm5Regs.TBPHS.half.TBPHS          = 0;                // Phase
-   EPwm5Regs.TBCTR                     = 0;                // обнуляем каунтер
+   EPwm5Regs.TBCTR                     = 0;                // cnt to zero
    EPwm5Regs.CMPA.half.CMPA            = EPwm5Regs.TBPRD-1;
 
    EPwm5Regs.TBCTL.bit.CTRMODE         = TB_COUNT_UPDOWN;  // Symmetrical mode
@@ -305,29 +304,29 @@ void Pwm_Init(TPwm *p) //Основной трехфазный ШИМ + ШИМ СУ + Тестовый измерительн
 
    EPwm5Regs.TBCTL.bit.HSPCLKDIV       = TB_DIV1;          // Clock ratio = SYSCLKOUT = 90 MHz, both HSPCLKDIV and CLKDIV = 1
    EPwm5Regs.TBCTL.bit.CLKDIV          = TB_DIV1;          // CLKDIV = 1
-   EPwm5Regs.TBCTL.bit.SYNCOSEL        = TB_SYNC_DISABLE;  // Sync out disabled - последний ШИМ в цепочке
-   EPwm5Regs.TBCTL.bit.FREE_SOFT       = 0;                // Остановка таймера сразу при остановке процессора
+   EPwm5Regs.TBCTL.bit.SYNCOSEL        = TB_SYNC_DISABLE;  // Sync out disabled - last PWM in a chain of syncing
+   EPwm5Regs.TBCTL.bit.FREE_SOFT       = 0;                // Stop just after emul stop
 
-   EPwm5Regs.ETSEL.bit.SOCAEN          = 1;    //enable SOCA
-   EPwm5Regs.ETSEL.bit.SOCASEL         = 2;    //SOCA on CTR = PRD
-   EPwm5Regs.ETPS.bit.SOCAPRD          = 1;    //SOC on first event
+   EPwm5Regs.ETSEL.bit.SOCAEN          = 1;                 //enable SOCA
+   EPwm5Regs.ETSEL.bit.SOCASEL         = 2;                 //SOCA on CTR = PRD
+   EPwm5Regs.ETPS.bit.SOCAPRD          = 1;                 //SOC on first event
 
    //====================================================
-   //Одновременное синхронизированное включение всех ШИМов, отсчет сразу у всех одновременно с нуля
+   //Simultanious switch ON of all PWMs, all start to count from zero
     EALLOW;
-    SysCtrlRegs.PCLKCR0.bit.TBCLKSYNC = 1; //включение pwm clock
+    SysCtrlRegs.PCLKCR0.bit.TBCLKSYNC = 1; //РІРєР»СЋС‡РµРЅРёРµ pwm clock
     EDIS;
 }
 
 void Pwm_Fast_calc(TPwm *p)
 {
-    //Задание компаратора ШИМ через относительные единицы референсного напряжения: 0 = 0 V, 1 = 24 V
-    // Проверка нормировки U_ref
+    // Set of PWM comparator levels, based on normalized base voltage : 0 = 0 V, 1 = 24 V
+    // Check of normalization of U_ref
     if (p->Ua_ref > 1.0) p->Ua_ref    = 1.0;
     if (p->Ub_ref > 1.0) p->Ub_ref    = 1.0;
     if (p->Uc_ref > 1.0) p->Uc_ref    = 1.0;
 
-    EPwm1Regs.CMPA.half.CMPA    = EPwm1Regs.TBPRD * (1 - p->Ua_ref) + 1; //+1 для полного нуля чтобы тик CMPA = TBPRD не тригерил
+    EPwm1Regs.CMPA.half.CMPA    = EPwm1Regs.TBPRD * (1 - p->Ua_ref) + 1; //+1 for full zero to make 1 tick of CMPA = TBPRD not to trigger transistor opening
     EPwm2Regs.CMPA.half.CMPA    = EPwm2Regs.TBPRD * (1 - p->Ub_ref) + 1;
     EPwm3Regs.CMPA.half.CMPA    = EPwm3Regs.TBPRD * (1 - p->Uc_ref) + 1;
 }
