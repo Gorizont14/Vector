@@ -8,8 +8,8 @@
 void Pwm_Init(TPwm *p) //Main calc of 3-phase PWM, Control System call and ADC call
 {
     EALLOW;
-        SysCtrlRegs.PCLKCR0.bit.TBCLKSYNC = 0; //Switch off PWM clock
-        SysCtrlRegs.PCLKCR1.bit.EPWM1ENCLK = 1;//Enable all PWMs: 1,2,3 for phases A,B,C, 4 for Control System + common things like ADC Udc, 5 for testing
+        SysCtrlRegs.PCLKCR0.bit.TBCLKSYNC = 0;  //Switch off PWM clock
+        SysCtrlRegs.PCLKCR1.bit.EPWM1ENCLK = 1; //Enable all PWMs: 1,2,3 for phases A,B,C, 4 for Control System + common things like ADC Udc, 5 for testing
         SysCtrlRegs.PCLKCR1.bit.EPWM2ENCLK = 1;
         SysCtrlRegs.PCLKCR1.bit.EPWM3ENCLK = 1;
         SysCtrlRegs.PCLKCR1.bit.EPWM4ENCLK = 1;
@@ -47,7 +47,7 @@ void Pwm_Init(TPwm *p) //Main calc of 3-phase PWM, Control System call and ADC c
     EPwm1Regs.AQCTLA.bit.ZRO            = AQ_CLEAR;         // Action on __
     EPwm1Regs.AQSFRC.bit.RLDCSF         = 0;                //Load on CTR = 0
 
-    // Contol of ePWM channel B comes from channel –ê:
+    // Contol of ePWM channel B comes from channel ¿:
     // Channel A sets the clocks, next on DB level there is an inversion with dead zone
     EPwm1Regs.DBCTL.bit.HALFCYCLE       = 0;                // TBCLCK rate
     EPwm1Regs.DBCTL.bit.IN_MODE         = 0;                // PWMxA is source for RED and FED
@@ -81,7 +81,7 @@ void Pwm_Init(TPwm *p) //Main calc of 3-phase PWM, Control System call and ADC c
     //---------------------------------------------
     //Trip zone control based on COMP2OUT
     EPwm1Regs.DCTRIPSEL.bit.DCAHCOMPSEL = 0x9;          //COMP2OUT
-    EPwm1Regs.TZDCSEL.bit.DCAEVT1       = 0x2;          //DCBH = high, DCBL  = don‚Äôt care
+    EPwm1Regs.TZDCSEL.bit.DCAEVT1       = 0x2;          //DCBH = high, DCBL  = donít care
     EPwm1Regs.DCACTL.bit.EVT1SRCSEL     = 0;            //DCAEVT1
     EPwm1Regs.DCACTL.bit.EVT1FRCSYNCSEL = 1;            //Async - immediate trip
     //---------------------------------------------
@@ -131,7 +131,7 @@ void Pwm_Init(TPwm *p) //Main calc of 3-phase PWM, Control System call and ADC c
     EPwm2Regs.AQCTLA.bit.ZRO            = AQ_CLEAR;         // Action on __
     EPwm2Regs.AQSFRC.bit.RLDCSF         = 0;                // Load on CTR = 0
 
-    // Contol of ePWM channel B comes from channel –ê:
+    // Contol of ePWM channel B comes from channel ¿:
     // Channel A sets the clocks, next on DB level there is an inversion with dead zone
     EPwm2Regs.DBCTL.bit.HALFCYCLE       = 0;                // TBCLCK rate
     EPwm2Regs.DBCTL.bit.IN_MODE         = 0;                // PWMxA is source for RED and FED
@@ -163,7 +163,7 @@ void Pwm_Init(TPwm *p) //Main calc of 3-phase PWM, Control System call and ADC c
     //---------------------------------------------
     //Trip zone control based on COMP3OUT
     EPwm2Regs.DCTRIPSEL.bit.DCAHCOMPSEL = 0xA;          //COMP3OUT
-    EPwm2Regs.TZDCSEL.bit.DCAEVT1       = 0x2;          //DCBH = high, DCBL  = don‚Äôt care
+    EPwm2Regs.TZDCSEL.bit.DCAEVT1       = 0x2;          //DCBH = high, DCBL  = donít care
     EPwm2Regs.DCACTL.bit.EVT1SRCSEL     = 0;            //DCAEVT1
     EPwm2Regs.DCACTL.bit.EVT1FRCSYNCSEL = 1;            //Async - immediate trip
     //---------------------------------------------
@@ -200,7 +200,7 @@ void Pwm_Init(TPwm *p) //Main calc of 3-phase PWM, Control System call and ADC c
     EPwm3Regs.TBCTL.bit.HSPCLKDIV       = TB_DIV1;          // Clock ratio = SYSCLKOUT = 90 MHz, both HSPCLKDIV and CLKDIV = 1
     EPwm3Regs.TBCTL.bit.CLKDIV          = TB_DIV1;          // CLKDIV = 1
     EPwm3Regs.TBCTL.bit.SYNCOSEL        = TB_SYNC_IN;       // Sync out on SYNC_IN
-    EPwm3Regs.TBCTL.bit.FREE_SOFT       = 1;                // –û—Å—Ç–∞–Ω–æ–≤–∫–∞ —à–∏–º –ø–æ—Å–ª–µ CTR = 0
+    EPwm3Regs.TBCTL.bit.FREE_SOFT       = 1;                // ŒÒÚ‡ÌÓ‚Í‡ ¯ËÏ ÔÓÒÎÂ CTR = 0
 
     EPwm3Regs.CMPCTL.bit.SHDWAMODE      = CC_SHADOW;
     EPwm3Regs.CMPCTL.bit.SHDWBMODE      = CC_SHADOW;
@@ -212,7 +212,7 @@ void Pwm_Init(TPwm *p) //Main calc of 3-phase PWM, Control System call and ADC c
     EPwm3Regs.AQCTLA.bit.ZRO            = AQ_CLEAR;         // Action on __
     EPwm3Regs.AQSFRC.bit.RLDCSF         = 0;                //Load on CTR = 0
 
-    // Contol of ePWM channel B comes from channel –ê:
+    // Contol of ePWM channel B comes from channel ¿:
     // Channel A sets the clocks, next on DB level there is an inversion with dead zone
     EPwm3Regs.DBCTL.bit.HALFCYCLE       = 0;                // TBCLCK rate
     EPwm3Regs.DBCTL.bit.IN_MODE         = 0;                // PWMxA is source for RED and FED
@@ -232,8 +232,8 @@ void Pwm_Init(TPwm *p) //Main calc of 3-phase PWM, Control System call and ADC c
     // Int is not used, cause both COMP2OUT and COMP3OUT have their own interrupts
     EPwm3Regs.DCTRIPSEL.bit.DCAHCOMPSEL = 0x9;          //COMP2OUT
     EPwm3Regs.DCTRIPSEL.bit.DCBHCOMPSEL = 0xA;          //COMP3OUT
-    EPwm3Regs.TZDCSEL.bit.DCAEVT1       = 0x2;          //DCBH = high, DCBL  = don‚Äôt care
-    EPwm3Regs.TZDCSEL.bit.DCBEVT1       = 0x2;          //DCBH = high, DCBL  = don‚Äôt care
+    EPwm3Regs.TZDCSEL.bit.DCAEVT1       = 0x2;          //DCBH = high, DCBL  = donít care
+    EPwm3Regs.TZDCSEL.bit.DCBEVT1       = 0x2;          //DCBH = high, DCBL  = donít care
     EPwm3Regs.DCACTL.bit.EVT1SRCSEL     = 0;            //DCAEVT1
     EPwm3Regs.DCBCTL.bit.EVT1SRCSEL     = 0;            //DCBEVT1
     EPwm3Regs.DCACTL.bit.EVT1FRCSYNCSEL = 1;            //Async - immediate trip
@@ -314,7 +314,7 @@ void Pwm_Init(TPwm *p) //Main calc of 3-phase PWM, Control System call and ADC c
    //====================================================
    //Simultanious switch ON of all PWMs, all start to count from zero
     EALLOW;
-    SysCtrlRegs.PCLKCR0.bit.TBCLKSYNC = 1; //–≤–∫–ª—é—á–µ–Ω–∏–µ pwm clock
+    SysCtrlRegs.PCLKCR0.bit.TBCLKSYNC = 1; //‚ÍÎ˛˜ÂÌËÂ pwm clock
     EDIS;
 }
 

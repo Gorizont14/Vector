@@ -15,7 +15,7 @@
 #include "DSP28x_Project.h"     // DSP28x Headerfile
 
 #include "V_Include/main.h"     // main header frame file
-#include <string.h>             // Г¤Г«Гї memcopy
+#include <string.h>             // äëÿ memcopy
 
 
 // CPU initialization - PLL, Clock, Timers, GPIO
@@ -23,7 +23,7 @@ void CPU_Init()// Initialization of CPU: PLL, Clock, Timers, GPIO
 {
     EALLOW;
     // Init System Control - CPU: PLL, Clocks to Peripherals. 90 MHz from internal oscillator
-    InitSysCtrl();      //PLLCR = 18, DIVSEL = 2 -> SYSCLOCKOUT = 10x18/2 = 90 MHz
+    InitSysCtrl();      //PLLCR = 18, DIVSEL = 2 -> SYSCLOCKOUT = 10x18/2 = 90 MHz, LOSPCP = 2 -> LSPCLK = SYSCLKOUT/4 = 44 ns
 
     // Initialize timers
     InitCpuTimers();
@@ -53,6 +53,8 @@ Uint16 fCPU = 90;    //CPU Frequency, MHz
 Uint16 fPWM = 10;     //PWM Frequency, kHz
 int Timer0Period = 1 * 1000;
 int Timer1Period = 1000;
+unsigned int SpiOutData = 0x0;
+unsigned int SpiInData = 0x0;
 
 //====================================================
 //Main variables-instances of program modules

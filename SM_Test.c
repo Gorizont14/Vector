@@ -4,7 +4,9 @@
 
 #include "V_Include/main.h"
 
-long test_clock;
+long test_clock = 0;
+int test_buttons = 0;
+//0 - SPI 1 transmittion init
 
 void AdcAvg(void)
 {
@@ -40,4 +42,7 @@ void TestFuncs(void)
 {
     AdcAvg();
     FaultCheck();
+    if(test_buttons & 0x0001){
+        SpiServ();
+    }
 }
