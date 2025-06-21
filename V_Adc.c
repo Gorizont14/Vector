@@ -5,7 +5,11 @@
 #include "V_Include/V_Adc.h"
 #include "V_Include/main.h"
 
+#pragma CODE_SECTION(Adc_Fast_Calc, "ramfuncs");
+
 #define ADC_SCALE 1/2048.0
+
+float adctest1, adctest2 = 0.0;
 
 void Adc_Init(TAdc *p)
 {
@@ -78,47 +82,49 @@ void Adc_Init(TAdc *p)
         AdcRegs.INTSEL1N2.bit.INT1E         = 1;   // Enable ADCINT 1
         AdcRegs.INTSEL1N2.bit.INT1CONT      = 1;    //Continious INT generation - not needed
         EDIS;
+
+        //initialization of variables in IQ format in pu
+        p->Umeas_dc_gain = _IQ(26.314 / drv_param.Udc_nom);//26.314 = Udc max, to pu
+        p->UdcGainNom = p->Umeas_dc_gain >> 12;         //divide by 4096 = 2^12, where 12 - adc resolution
+
+        p->Imeas_a_gain = _IQ(16.5 / drv_param.I_nom);  //16.5 = Ia max, to pu
+        p->IaGainNom = p->Imeas_a_gain >> 11;           //divide by 2048 = 2^11
+
+        p->Imeas_b_gain = _IQ(16.5 / drv_param.I_nom);  //16.5 = Ia max
+        p->IbGainNom = p->Imeas_b_gain >> 11;           //divide by 2048 = 2^11
 }
 
-void Adc_Fast_calc(TAdc *p)
+void Adc_Fast_Calc(TAdc *p)
 {
     // Main ADC Calc on PWM freq
-    p->Itemp_a = 0;
-    p->Itemp_b = 0;
-    p->Udctemp = 0;
+    //p->Itemp_a = 0;
+    //p->Itemp_b = 0;
+    //p->Udctemp = 0;
 
-    p->Itemp_a = AdcResult.ADCRESULT4; //0-4095
-    p->Itemp_a -= 2048; //+-2048
-    p->Imeas_a = p->IaGainNom * (p->Itemp_a * ADC_SCALE + p->Imeas_a_offset); //32768 x 10, int32
+    p->Iatemp = AdcResult.ADCRESULT4; //0-4095
+    p->Iatemp -= 2048; //+-2048
+    p->Iameas = p->IaGainNom * p->Iatemp; //IQ24
 
-    //--------------------------------------------
-    //TEST - temporary TZ of phase A
-    if(abs(p->Imeas_a) > 0.5 && EN_GATE == 1)
-    {
-        //pwm.off(&pwm);
-    }
-    //--------------------------------------------
+    p->Ibtemp = AdcResult.ADCRESULT5; //0-4095
+    p->Ibtemp -= 2048; //+-2048
+    p->Ibmeas = p->IbGainNom * p->Ibtemp; //IQ24
 
-    p->Itemp_b = AdcResult.ADCRESULT5; //0-4095
-    p->Itemp_b -= 2048; //+-2048
-    p->Imeas_b = p->IbGainNom * (p->Itemp_b * ADC_SCALE + p->Imeas_b_offset);
-
-    p->Imeas_c = -p->Imeas_a - p->Imeas_b; //Ic = -Ia - Ib
+    p->Icmeas = - p->Iameas - p->Ibmeas; //Ic = -Ia - Ib
 
     p->Udctemp = AdcResult.ADCRESULT0; //0-4095
-    p->Udctemp -= 2048; //+-2048
-    p->Umeas_dc = p->UdcGainNom * (p->Udctemp * ADC_SCALE + p->Umeas_dc_offset); //
+    //p->Udctemp -= 2048; //+-2048 - not needed for unipolar DC voltage
+    p->Udcmeas = p->UdcGainNom * p->Udctemp;
+
+    //adctest1 = _IQ24toF(p->Udcmeas);
+    //adctest2 = _IQ24toF(p->Ibmeas);
 }
 
-void Adc_Khz_calc(TAdc *p)
+void Adc_Khz_Calc(TAdc *p)
 {
 
 }
 
-void Adc_Slow_calc(TAdc *p)
+void Adc_Slow_Calc(TAdc *p)
 {
-    //Recalc of nominal coefficients of current, voltage etc.
-    p->IaGainNom = p->Imeas_a_gain / drv_param.I_nom;
-    p->IbGainNom = p->Imeas_b_gain / drv_param.I_nom;
-    p->UdcGainNom = p->Umeas_dc_gain / drv_param.Udc_nom;
+
 }

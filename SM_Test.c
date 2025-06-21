@@ -4,7 +4,11 @@
 
 #include "V_Include/main.h"
 
-long test_clock;
+long test_clock = 0;
+int test_buttons = 0;
+//0 - SPI 1 transmittion init
+float   Speed_Max_High = 0.0;
+float   Speed_Max_Low = 0.0;
 
 void AdcAvg(void)
 {
@@ -25,19 +29,19 @@ __interrupt void ADCINT1_Handler(void)
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
 }
 
-void FaultCheck(void)
-{
-    if (GpioDataRegs.GPADAT.bit.GPIO28 == 0) {
-        DRV_FAULT = 1;
-        test_clock++;
-    } else {
-        DRV_FAULT = 0;
-    }
-
-}
-
 void TestFuncs(void)
 {
     AdcAvg();
-    FaultCheck();
+    if(test_buttons & 0x0001){
+        SpiServ();
+    }
+
+    //Test function for manual PWM switch on and off
+    if (pwm_on_test == 1) {
+        pwm.on(&pwm);
+        pwm_on_test = 0;
+    } else if (pwm_on_test == 2){
+        pwm.off(&pwm);
+        pwm_on_test = 0;
+    }
 }

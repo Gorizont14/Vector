@@ -103,7 +103,7 @@
 		</variable>
 		<variable>
 			<name>INSTALLROOT_F2806x1</name>
-			<value>$%7BTI_PRODUCTS_DIR%7D/C2000Ware_5_02_00_00/device_support/f2806x</value>
+			<value>file:/C:/ti/c2000/C2000Ware_5_04_00_00/device_support/f2806x</value>
 		</variable>
 		<variable>
 			<name>INSTALLROOT_F2806x_TO_MWARE</name>
